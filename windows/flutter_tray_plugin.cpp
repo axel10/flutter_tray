@@ -13,7 +13,14 @@ namespace flutter_tray {
 
 constexpr UINT WM_TRAY_CALLBACK = WM_APP + 1;
 static UINT WM_TASKBAR_CREATED = 0;
-static FlutterTrayPlugin* g_instance = nullptr;
+
+std::wstring Utf8ToWide(const std::string& utf8) {
+  if (utf8.empty()) return std::wstring();
+  int size_needed = MultiByteToWideChar(CP_UTF8, 0, &utf8[0], (int)utf8.size(), NULL, 0);
+  std::wstring wstrTo(size_needed, 0);
+  MultiByteToWideChar(CP_UTF8, 0, &utf8[0], (int)utf8.size(), &wstrTo[0], size_needed);
+  return wstrTo;
+}
 
 void FlutterTrayPlugin::RegisterWithRegistrar(
     flutter::PluginRegistrarWindows* registrar) {
@@ -29,8 +36,6 @@ void FlutterTrayPlugin::RegisterWithRegistrar(
         plugin_pointer->HandleMethodCall(call, std::move(result));
       });
 
-  g_instance = plugin.get();
-
   registrar->AddPlugin(std::move(plugin));
 }
 
@@ -45,7 +50,6 @@ FlutterTrayPlugin::FlutterTrayPlugin(
 FlutterTrayPlugin::~FlutterTrayPlugin() {
   DestroyTray();
   DestroyHiddenWindow();
-  g_instance = nullptr;
 }
 
 void FlutterTrayPlugin::HandleMethodCall(
@@ -141,8 +145,6 @@ void FlutterTrayPlugin::HandleMethodCall(
 
 bool FlutterTrayPlugin::InitTray(const std::string& icon_path,
                                   const std::string& tooltip) {
-  DestroyTray();
-
   icon_path_ = icon_path;
   tooltip_ = tooltip;
 
@@ -152,7 +154,7 @@ bool FlutterTrayPlugin::InitTray(const std::string& icon_path,
 
   HICON hIcon = nullptr;
   if (!icon_path.empty()) {
-    std::wstring wpath(icon_path.begin(), icon_path.end());
+    std::wstring wpath = Utf8ToWide(icon_path);
     hIcon = (HICON)LoadImageW(nullptr, wpath.c_str(), IMAGE_ICON,
                               GetSystemMetrics(SM_CXSMICON),
                               GetSystemMetrics(SM_CYSMICON),
@@ -163,20 +165,33 @@ bool FlutterTrayPlugin::InitTray(const std::string& icon_path,
     hIcon = LoadIconW(nullptr, IDI_APPLICATION);
   }
 
+  if (nid_.hIcon) {
+    DestroyIcon(nid_.hIcon);
+  }
+
   nid_.hWnd = hwnd_;
   nid_.uID = 1;
   nid_.uFlags = NIF_ICON | NIF_TIP | NIF_MESSAGE;
   nid_.uCallbackMessage = WM_TRAY_CALLBACK;
   nid_.hIcon = hIcon;
 
-  wcscpy_s(nid_.szTip, sizeof(nid_.szTip) / sizeof(WCHAR),
-           std::wstring(tooltip.begin(), tooltip.end()).c_str());
+  std::wstring wtooltip = Utf8ToWide(tooltip);
+  wcscpy_s(nid_.szTip, sizeof(nid_.szTip) / sizeof(WCHAR), wtooltip.c_str());
 
-  if (!Shell_NotifyIconW(NIM_ADD, &nid_)) {
-    return false;
+  if (tray_created_) {
+    if (!Shell_NotifyIconW(NIM_MODIFY, &nid_)) {
+      return false;
+    }
+  } else {
+    if (!Shell_NotifyIconW(NIM_ADD, &nid_)) {
+      if (nid_.hIcon) {
+        DestroyIcon(nid_.hIcon);
+        nid_.hIcon = nullptr;
+      }
+      return false;
+    }
+    tray_created_ = true;
   }
-
-  tray_created_ = true;
   return true;
 }
 
@@ -204,7 +219,7 @@ void FlutterTrayPlugin::SetMenu(const std::vector<TrayMenuItem>& items) {
       if (item.checked) {
         flags |= MF_CHECKED;
       }
-      std::wstring wlabel(item.label.begin(), item.label.end());
+      std::wstring wlabel = Utf8ToWide(item.label);
       InsertMenuW(hmenu_, pos, flags, item.id, wlabel.c_str());
     }
     pos++;
@@ -261,42 +276,50 @@ void FlutterTrayPlugin::CreateHiddenWindow() {
 
   hwnd_ = CreateWindowExW(0, L"FlutterTrayHiddenWindow", L"",
                           WS_OVERLAPPED, 0, 0, 0, 0,
-                          nullptr, nullptr, GetModuleHandleW(nullptr), nullptr);
+                          nullptr, nullptr, GetModuleHandleW(nullptr), this);
 }
 
 void FlutterTrayPlugin::DestroyHiddenWindow() {
   if (hwnd_) {
     DestroyWindow(hwnd_);
     hwnd_ = nullptr;
+    UnregisterClassW(L"FlutterTrayHiddenWindow", GetModuleHandleW(nullptr));
   }
 }
 
 LRESULT CALLBACK FlutterTrayPlugin::WndProc(HWND hwnd, UINT msg,
                                             WPARAM wParam, LPARAM lParam) {
+  FlutterTrayPlugin* plugin = nullptr;
+  if (msg == WM_NCCREATE) {
+    CREATESTRUCTW* cs = reinterpret_cast<CREATESTRUCTW*>(lParam);
+    plugin = reinterpret_cast<FlutterTrayPlugin*>(cs->lpCreateParams);
+    SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(plugin));
+  } else {
+    plugin = reinterpret_cast<FlutterTrayPlugin*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+  }
+
+  if (!plugin) {
+    return DefWindowProcW(hwnd, msg, wParam, lParam);
+  }
+
   if (msg == WM_TASKBAR_CREATED) {
-    if (g_instance && g_instance->tray_created_) {
-      Shell_NotifyIconW(NIM_ADD, &g_instance->nid_);
+    if (plugin->tray_created_) {
+      Shell_NotifyIconW(NIM_ADD, &plugin->nid_);
     }
     return 0;
   }
 
   if (msg == WM_COMMAND) {
-    if (g_instance) {
-      int menu_id = LOWORD(wParam);
-      g_instance->EmitEvent("menuClick", menu_id);
-    }
+    int menu_id = LOWORD(wParam);
+    plugin->EmitEvent("menuClick", menu_id);
     return 0;
   }
 
   if (msg == WM_TRAY_CALLBACK) {
     if (lParam == WM_LBUTTONUP) {
-      if (g_instance) {
-        g_instance->EmitEvent("leftClick", -1);
-      }
+      plugin->EmitEvent("leftClick", -1);
     } else if (lParam == WM_RBUTTONUP) {
-      if (g_instance) {
-        g_instance->ShowContextMenu();
-      }
+      plugin->ShowContextMenu();
     }
     return 0;
   }

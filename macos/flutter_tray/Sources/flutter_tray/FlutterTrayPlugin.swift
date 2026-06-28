@@ -4,6 +4,7 @@ import FlutterMacOS
 public class FlutterTrayPlugin: NSObject, FlutterPlugin, NSMenuDelegate {
   private var channel: FlutterMethodChannel
   private var statusItem: NSStatusItem?
+  private var trayMenu: NSMenu?
   private var menuItems: [[String: Any]] = []
 
   init(channel: FlutterMethodChannel) {
@@ -69,7 +70,7 @@ public class FlutterTrayPlugin: NSObject, FlutterPlugin, NSMenuDelegate {
       button.image = img
       button.toolTip = tooltip
       button.target = self
-      button.action = #selector(onStatusItemLeftClick)
+      button.action = #selector(onStatusItemClick)
       button.sendAction(on: [.leftMouseUp, .rightMouseUp])
     }
 
@@ -87,6 +88,7 @@ public class FlutterTrayPlugin: NSObject, FlutterPlugin, NSMenuDelegate {
       let isSeparator = itemDict["isSeparator"] as? Bool ?? false
       let label = itemDict["label"] as? String ?? ""
       let disabled = itemDict["disabled"] as? Bool ?? false
+      let checked = itemDict["checked"] as? Bool ?? false
       let id = itemDict["id"] as? Int ?? 0
 
       if isSeparator {
@@ -95,12 +97,13 @@ public class FlutterTrayPlugin: NSObject, FlutterPlugin, NSMenuDelegate {
         let menuItem = NSMenuItem(title: label, action: #selector(onMenuItemClick(_:)), keyEquivalent: "")
         menuItem.tag = id
         menuItem.isEnabled = !disabled
+        menuItem.state = checked ? .on : .off
         menuItem.target = self
         menu.addItem(menuItem)
       }
     }
 
-    statusItem?.menu = menu
+    self.trayMenu = menu
   }
 
   private func destroy() {
@@ -108,20 +111,30 @@ public class FlutterTrayPlugin: NSObject, FlutterPlugin, NSMenuDelegate {
       NSStatusBar.system.removeStatusItem(item)
       statusItem = nil
     }
+    trayMenu = nil
     menuItems = []
   }
 
-  @objc private func onStatusItemLeftClick() {
+  @objc private func onStatusItemClick() {
     guard let event = NSApp.currentEvent else { return }
 
-    if event.type == .rightMouseUp {
-      return
+    if event.type == .rightMouseUp || event.modifierFlags.contains(.control) {
+      if let menu = self.trayMenu {
+        statusItem?.menu = menu
+        statusItem?.button?.performClick(nil)
+        statusItem?.menu = nil
+      } else {
+        channel.invokeMethod("onTrayEvent", arguments: [
+          "type": "rightClick",
+          "menuId": -1,
+        ])
+      }
+    } else {
+      channel.invokeMethod("onTrayEvent", arguments: [
+        "type": "leftClick",
+        "menuId": -1,
+      ])
     }
-
-    channel.invokeMethod("onTrayEvent", arguments: [
-      "type": "leftClick",
-      "menuId": -1,
-    ])
   }
 
   @objc private func onMenuItemClick(_ sender: NSMenuItem) {
@@ -132,10 +145,6 @@ public class FlutterTrayPlugin: NSObject, FlutterPlugin, NSMenuDelegate {
   }
 
   public func menuWillOpen(_ menu: NSMenu) {
-    channel.invokeMethod("onTrayEvent", arguments: [
-      "type": "rightClick",
-      "menuId": -1,
-    ])
   }
 
   public func menuDidClose(_ menu: NSMenu) {
