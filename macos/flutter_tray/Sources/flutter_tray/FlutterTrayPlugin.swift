@@ -51,11 +51,11 @@ public class FlutterTrayPlugin: NSObject, FlutterPlugin, NSMenuDelegate {
   private func initTray(iconPath: String, tooltip: String) -> Bool {
     destroy()
 
-    let image: NSImage?
+    var image: NSImage?
     if iconPath.isEmpty {
       image = NSImage(size: NSSize(width: 18, height: 18))
     } else {
-      image = NSImage(contentsOfFile: iconPath)
+      image = NSImage(named: iconPath) ?? NSImage(contentsOfFile: iconPath)
     }
 
     guard let img = image else {
