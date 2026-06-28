@@ -29,15 +29,8 @@ class TrayImplLinux {
   bool RegisterWithWatcher();
   void ShowContextMenu();
   void EmitEvent(const char* type, int menu_id);
-
-  static void OnNameAcquired(GDBusConnection* connection,
-                             const gchar* name,
-                             gpointer user_data);
-  static void OnNameLost(GDBusConnection* connection,
-                         const gchar* name,
-                         gpointer user_data);
-
-  static const gchar* kIntrospectionXML;
+  GVariant* BuildMenuLayout(int parent_id, int recursion_depth);
+  void EmitLayoutUpdated();
 
   FlMethodChannel* channel_;
   std::string icon_path_;
@@ -47,9 +40,11 @@ class TrayImplLinux {
   GDBusConnection* connection_ = nullptr;
   GtkMenu* gtk_menu_ = nullptr;
   guint bus_owner_id_ = 0;
-  guint object_id_ = 0;
+  std::vector<guint> object_ids_;
   gchar* bus_name_ = nullptr;
+  guint dbusmenu_revision_ = 1;
   bool initialized_ = false;
+
   static int bus_id_counter_;
 };
 

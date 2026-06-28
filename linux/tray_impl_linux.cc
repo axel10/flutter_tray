@@ -6,7 +6,7 @@ int TrayImplLinux::bus_id_counter_ = 0;
 
 static const char kSNIPath[] = "/StatusNotifierItem";
 
-const gchar* TrayImplLinux::kIntrospectionXML =
+static const char kIntrospectionXML[] =
     "<node>"
     "  <interface name='org.kde.StatusNotifierItem'>"
     "    <method name='Activate'>"
@@ -21,14 +21,115 @@ const gchar* TrayImplLinux::kIntrospectionXML =
     "      <arg name='x' type='i' direction='in'/>"
     "      <arg name='y' type='i' direction='in'/>"
     "    </method>"
+    "    <method name='Scroll'>"
+    "      <arg name='delta' type='i' direction='in'/>"
+    "      <arg name='orientation' type='s' direction='in'/>"
+    "    </method>"
+    "    <signal name='NewIcon'/>"
+    "    <signal name='NewAttentionIcon'/>"
+    "    <signal name='NewOverlayIcon'/>"
+    "    <signal name='NewToolTip'/>"
+    "    <signal name='NewStatus'>"
+    "      <arg name='status' type='s'/>"
+    "    </signal>"
+    "    <signal name='NewTitle'/>"
+    "    <signal name='NewIconThemePath'>"
+    "      <arg name='icon_theme_path' type='s'/>"
+    "    </signal>"
     "    <property name='Category' type='s' access='read'/>"
     "    <property name='Id' type='s' access='read'/>"
     "    <property name='Title' type='s' access='read'/>"
     "    <property name='Status' type='s' access='read'/>"
-    "    <property name='WindowId' type='i' access='read'/>"
+    "    <property name='WindowId' type='u' access='read'/>"
     "    <property name='IconName' type='s' access='read'/>"
     "    <property name='IconPixmap' type='a(iiay)' access='read'/>"
+    "    <property name='OverlayIconName' type='s' access='read'/>"
+    "    <property name='OverlayIconPixmap' type='a(iiay)' access='read'/>"
+    "    <property name='AttentionIconName' type='s' access='read'/>"
+    "    <property name='AttentionIconPixmap' type='a(iiay)' access='read'/>"
+    "    <property name='AttentionMovieName' type='s' access='read'/>"
+    "    <property name='ToolTip' type='(sa(iiay)ss)' access='read'/>"
+    "    <property name='IconThemePath' type='s' access='read'/>"
+    "    <property name='Menu' type='o' access='read'/>"
     "    <property name='ItemIsMenu' type='b' access='read'/>"
+    "    <property name='IconAccessibleDesc' type='s' access='read'/>"
+    "    <property name='AttentionAccessibleDesc' type='s' access='read'/>"
+    "  </interface>"
+    "  <interface name='org.freedesktop.StatusNotifierItem'>"
+    "    <method name='Activate'>"
+    "      <arg name='x' type='i' direction='in'/>"
+    "      <arg name='y' type='i' direction='in'/>"
+    "    </method>"
+    "    <method name='SecondaryActivate'>"
+    "      <arg name='x' type='i' direction='in'/>"
+    "      <arg name='y' type='i' direction='in'/>"
+    "    </method>"
+    "    <method name='ContextMenu'>"
+    "      <arg name='x' type='i' direction='in'/>"
+    "      <arg name='y' type='i' direction='in'/>"
+    "    </method>"
+    "    <method name='Scroll'>"
+    "      <arg name='delta' type='i' direction='in'/>"
+    "      <arg name='orientation' type='s' direction='in'/>"
+    "    </method>"
+    "    <signal name='NewIcon'/>"
+    "    <signal name='NewAttentionIcon'/>"
+    "    <signal name='NewOverlayIcon'/>"
+    "    <signal name='NewToolTip'/>"
+    "    <signal name='NewStatus'>"
+    "      <arg name='status' type='s'/>"
+    "    </signal>"
+    "    <signal name='NewTitle'/>"
+    "    <signal name='NewIconThemePath'>"
+    "      <arg name='icon_theme_path' type='s'/>"
+    "    </signal>"
+    "    <property name='Category' type='s' access='read'/>"
+    "    <property name='Id' type='s' access='read'/>"
+    "    <property name='Title' type='s' access='read'/>"
+    "    <property name='Status' type='s' access='read'/>"
+    "    <property name='WindowId' type='u' access='read'/>"
+    "    <property name='IconName' type='s' access='read'/>"
+    "    <property name='IconPixmap' type='a(iiay)' access='read'/>"
+    "    <property name='OverlayIconName' type='s' access='read'/>"
+    "    <property name='OverlayIconPixmap' type='a(iiay)' access='read'/>"
+    "    <property name='AttentionIconName' type='s' access='read'/>"
+    "    <property name='AttentionIconPixmap' type='a(iiay)' access='read'/>"
+    "    <property name='AttentionMovieName' type='s' access='read'/>"
+    "    <property name='ToolTip' type='(sa(iiay)ss)' access='read'/>"
+    "    <property name='IconThemePath' type='s' access='read'/>"
+    "    <property name='Menu' type='o' access='read'/>"
+    "    <property name='ItemIsMenu' type='b' access='read'/>"
+    "    <property name='IconAccessibleDesc' type='s' access='read'/>"
+    "    <property name='AttentionAccessibleDesc' type='s' access='read'/>"
+    "  </interface>"
+    "  <interface name='com.canonical.dbusmenu'>"
+    "    <method name='GetLayout'>"
+    "      <arg name='parentId' type='i' direction='in'/>"
+    "      <arg name='recursionDepth' type='i' direction='in'/>"
+    "      <arg name='propertyNames' type='as' direction='in'/>"
+    "      <arg name='revision' type='u' direction='out'/>"
+    "      <arg name='layout' type='(ia{sv}av)' direction='out'/>"
+    "    </method>"
+    "    <method name='Event'>"
+    "      <arg name='id' type='i' direction='in'/>"
+    "      <arg name='eventId' type='s' direction='in'/>"
+    "      <arg name='data' type='v' direction='in'/>"
+    "      <arg name='timestamp' type='u' direction='in'/>"
+    "    </method>"
+    "    <method name='AboutToShow'>"
+    "      <arg name='id' type='i' direction='in'/>"
+    "      <arg name='needUpdate' type='b' direction='out'/>"
+    "    </method>"
+    "    <signal name='LayoutUpdated'>"
+    "      <arg name='revision' type='u'/>"
+    "      <arg name='parentId' type='i'/>"
+    "    </signal>"
+    "    <signal name='ItemsPropertiesUpdated'>"
+    "      <arg name='updatedProps' type='a(ia{sv})'/>"
+    "      <arg name='removedProps' type='a(ias)'/>"
+    "    </signal>"
+    "    <property name='Version' type='u' access='read'/>"
+    "    <property name='Status' type='s' access='read'/>"
     "  </interface>"
     "</node>";
 
@@ -64,8 +165,8 @@ bool TrayImplLinux::Init(const std::string& icon_path,
       connection_,
       bus_name_,
       G_BUS_NAME_OWNER_FLAGS_NONE,
-      OnNameAcquired,
-      OnNameLost,
+      nullptr,
+      nullptr,
       this,
       nullptr);
 
@@ -80,6 +181,10 @@ bool TrayImplLinux::Init(const std::string& icon_path,
     return false;
   }
 
+  g_dbus_connection_emit_signal(
+      connection_, nullptr, kSNIPath,
+      "org.kde.StatusNotifierItem", "NewIcon", nullptr, nullptr);
+
   if (!RegisterWithWatcher()) {
     g_warning("[flutter_tray] Failed to register with StatusNotifierWatcher");
   }
@@ -90,6 +195,7 @@ bool TrayImplLinux::Init(const std::string& icon_path,
 
 void TrayImplLinux::SetMenu(const std::vector<TrayMenuItem>& items) {
   menu_items_ = items;
+  EmitLayoutUpdated();
 
   if (gtk_menu_) {
     gtk_widget_destroy(GTK_WIDGET(gtk_menu_));
@@ -98,9 +204,11 @@ void TrayImplLinux::SetMenu(const std::vector<TrayMenuItem>& items) {
 }
 
 void TrayImplLinux::Destroy() {
-  if (object_id_ > 0) {
-    g_dbus_connection_unregister_object(connection_, object_id_);
-    object_id_ = 0;
+  if (connection_) {
+    for (auto id : object_ids_) {
+      g_dbus_connection_unregister_object(connection_, id);
+    }
+    object_ids_.clear();
   }
   if (bus_owner_id_ > 0) {
     g_bus_unown_name(bus_owner_id_);
@@ -132,36 +240,88 @@ bool TrayImplLinux::SetupDBusObject() {
     return false;
   }
 
-  GDBusInterfaceInfo* iface_info = node_info->interfaces[0];
-
   GDBusInterfaceVTable vtable = {};
+
   vtable.method_call = [](GDBusConnection* conn, const gchar* sender,
                           const gchar* object_path,
                           const gchar* interface_name,
                           const gchar* method_name, GVariant* parameters,
                           GDBusMethodInvocation* invocation,
                           gpointer user_data) {
-    auto* self = static_cast<TrayImplLinux*>(user_data);
     (void)conn;
     (void)sender;
     (void)object_path;
-    (void)interface_name;
-    (void)parameters;
+    auto* self = static_cast<TrayImplLinux*>(user_data);
 
-    if (g_strcmp0(method_name, "Activate") == 0) {
-      self->EmitEvent("leftClick", -1);
-      g_dbus_method_invocation_return_value(invocation, nullptr);
-    } else if (g_strcmp0(method_name, "SecondaryActivate") == 0) {
-      self->ShowContextMenu();
-      g_dbus_method_invocation_return_value(invocation, nullptr);
-    } else if (g_strcmp0(method_name, "ContextMenu") == 0) {
-      self->ShowContextMenu();
-      g_dbus_method_invocation_return_value(invocation, nullptr);
-    } else {
+    bool is_sni = (g_strcmp0(interface_name, "org.kde.StatusNotifierItem") == 0 ||
+                   g_strcmp0(interface_name, "org.freedesktop.StatusNotifierItem") == 0);
+
+    if (is_sni) {
+      if (g_strcmp0(method_name, "Activate") == 0) {
+        self->EmitEvent("leftClick", -1);
+        g_dbus_method_invocation_return_value(invocation, nullptr);
+      } else if (g_strcmp0(method_name, "SecondaryActivate") == 0) {
+        self->EmitEvent("rightClick", -1);
+        g_dbus_method_invocation_return_value(invocation, nullptr);
+      } else if (g_strcmp0(method_name, "ContextMenu") == 0) {
+        self->ShowContextMenu();
+        g_dbus_method_invocation_return_value(invocation, nullptr);
+      } else if (g_strcmp0(method_name, "Scroll") == 0) {
+        g_dbus_method_invocation_return_value(invocation, nullptr);
+      } else {
+        g_dbus_method_invocation_return_error(
+            invocation, G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_METHOD,
+            "Unknown method: %s", method_name);
+      }
+      return;
+    }
+
+    if (g_strcmp0(interface_name, "com.canonical.dbusmenu") == 0) {
+      if (g_strcmp0(method_name, "GetLayout") == 0) {
+        gint32 parent_id = 0;
+        gint32 recursion_depth = -1;
+        g_variant_get_child(parameters, 0, "i", &parent_id);
+        g_variant_get_child(parameters, 1, "i", &recursion_depth);
+
+        g_autoptr(GVariant) layout = g_variant_ref_sink(self->BuildMenuLayout(parent_id, recursion_depth));
+        g_dbus_method_invocation_return_value(invocation,
+            g_variant_new("(u@(ia{sv}av))",
+                          self->dbusmenu_revision_, layout));
+      } else if (g_strcmp0(method_name, "Event") == 0) {
+        gint32 id = 0;
+        const gchar* event_id = nullptr;
+        g_variant_get(parameters, "(i&s)", &id, &event_id);
+
+        if (g_strcmp0(event_id, "clicked") == 0) {
+          for (const auto& item : self->menu_items_) {
+            if (item.id == id) {
+              self->EmitEvent("menuClick", id);
+              break;
+            }
+          }
+        }
+        g_dbus_method_invocation_return_value(invocation, nullptr);
+      } else if (g_strcmp0(method_name, "AboutToShow") == 0) {
+        g_dbus_method_invocation_return_value(invocation,
+            g_variant_new("(b)", FALSE));
+      } else {
+        g_dbus_method_invocation_return_error(
+            invocation, G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_METHOD,
+            "Unknown method: %s", method_name);
+      }
+      return;
+    }
+
+    if (g_strcmp0(interface_name, "org.freedesktop.DBus.Properties") == 0) {
       g_dbus_method_invocation_return_error(
           invocation, G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_METHOD,
-          "Unknown method: %s", method_name);
+          "Use GetAll instead");
+      return;
     }
+
+    g_dbus_method_invocation_return_error(
+        invocation, G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_INTERFACE,
+        "Unknown interface: %s", interface_name);
   };
 
   vtable.get_property = [](GDBusConnection* conn, const gchar* sender,
@@ -172,8 +332,28 @@ bool TrayImplLinux::SetupDBusObject() {
     (void)conn;
     (void)sender;
     (void)object_path;
-    (void)interface_name;
     auto* self = static_cast<TrayImplLinux*>(user_data);
+
+    if (g_strcmp0(interface_name, "com.canonical.dbusmenu") == 0) {
+      if (g_strcmp0(property_name, "Version") == 0) {
+        return g_variant_new_uint32(3);
+      }
+      if (g_strcmp0(property_name, "Status") == 0) {
+        return g_variant_new_string("normal");
+      }
+      g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_PROPERTY,
+                  "Unknown property: %s", property_name);
+      return nullptr;
+    }
+
+    bool is_sni = (g_strcmp0(interface_name, "org.kde.StatusNotifierItem") == 0 ||
+                   g_strcmp0(interface_name, "org.freedesktop.StatusNotifierItem") == 0);
+
+    if (!is_sni && g_strcmp0(interface_name, "org.freedesktop.DBus.Properties") != 0) {
+      g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_INTERFACE,
+                  "Unknown interface: %s", interface_name);
+      return nullptr;
+    }
 
     if (g_strcmp0(property_name, "Category") == 0) {
       return g_variant_new_string("ApplicationStatus");
@@ -187,16 +367,30 @@ bool TrayImplLinux::SetupDBusObject() {
     if (g_strcmp0(property_name, "Status") == 0) {
       return g_variant_new_string("Active");
     }
+
     if (g_strcmp0(property_name, "WindowId") == 0) {
-      return g_variant_new_int32(0);
+      return g_variant_new_uint32(0);
     }
+    if (g_strcmp0(property_name, "ItemIsMenu") == 0) {
+      return g_variant_new_boolean(FALSE);
+    }
+
     if (g_strcmp0(property_name, "IconName") == 0) {
-      return g_variant_new_string("");
+      if (!self->icon_path_.empty()) {
+        const gchar* sep = g_strrstr(self->icon_path_.c_str(), "/");
+        const gchar* basename = sep ? sep + 1 : self->icon_path_.c_str();
+        g_autofree gchar* name = g_strdup(basename);
+        gchar* dot = g_strrstr(name, ".");
+        if (dot) *dot = '\0';
+        return g_variant_new_string(name);
+      }
+      return g_variant_new_string("application-x-executable");
     }
+
     if (g_strcmp0(property_name, "IconPixmap") == 0) {
+      GError* gerr = nullptr;
       g_autoptr(GdkPixbuf) pixbuf = nullptr;
       if (!self->icon_path_.empty()) {
-        GError* gerr = nullptr;
         pixbuf = gdk_pixbuf_new_from_file(self->icon_path_.c_str(), &gerr);
         if (!pixbuf) {
           g_warning("[flutter_tray] Failed to load icon: %s",
@@ -209,35 +403,72 @@ bool TrayImplLinux::SetupDBusObject() {
       g_variant_builder_init(&builder, G_VARIANT_TYPE("a(iiay)"));
 
       if (pixbuf) {
-        int width = gdk_pixbuf_get_width(pixbuf);
-        int height = gdk_pixbuf_get_height(pixbuf);
-        int rowstride = gdk_pixbuf_get_rowstride(pixbuf);
-        int n_channels = gdk_pixbuf_get_n_channels(pixbuf);
-        const guchar* pixels = gdk_pixbuf_read_pixels(pixbuf);
+        int w = gdk_pixbuf_get_width(pixbuf);
+        int h = gdk_pixbuf_get_height(pixbuf);
+        int rs = gdk_pixbuf_get_rowstride(pixbuf);
+        int nc = gdk_pixbuf_get_n_channels(pixbuf);
+        const guchar* px = gdk_pixbuf_read_pixels(pixbuf);
 
-        int size = width * height * 4;
+        int size = w * h * 4;
         g_autofree guchar* argb = static_cast<guchar*>(g_malloc(size));
-
-        for (int y = 0; y < height; y++) {
-          for (int x = 0; x < width; x++) {
-            const guchar* src = pixels + y * rowstride + x * n_channels;
-            guchar* dst = argb + (y * width + x) * 4;
-            dst[0] = (n_channels >= 4) ? src[3] : 255;
-            dst[1] = src[0];
-            dst[2] = src[1];
-            dst[3] = src[2];
+        for (int y = 0; y < h; y++) {
+          for (int x = 0; x < w; x++) {
+            const guchar* s = px + y * rs + x * nc;
+            guchar* d = argb + (y * w + x) * 4;
+            d[0] = (nc >= 4) ? s[3] : 255;
+            d[1] = s[0];
+            d[2] = s[1];
+            d[3] = s[2];
           }
         }
 
-        g_variant_builder_add(&builder, "(ii@ay)", width, height,
+        g_variant_builder_add(&builder, "(ii@ay)", w, h,
                               g_variant_new_fixed_array(
                                   G_VARIANT_TYPE_BYTE, argb, size, 1));
       }
 
       return g_variant_builder_end(&builder);
     }
-    if (g_strcmp0(property_name, "ItemIsMenu") == 0) {
-      return g_variant_new_boolean(FALSE);
+
+    if (g_strcmp0(property_name, "AttentionIconName") == 0 ||
+        g_strcmp0(property_name, "AttentionMovieName") == 0 ||
+        g_strcmp0(property_name, "OverlayIconName") == 0 ||
+        g_strcmp0(property_name, "IconAccessibleDesc") == 0 ||
+        g_strcmp0(property_name, "AttentionAccessibleDesc") == 0) {
+      return g_variant_new_string("");
+    }
+
+    if (g_strcmp0(property_name, "AttentionIconPixmap") == 0 ||
+        g_strcmp0(property_name, "OverlayIconPixmap") == 0) {
+      GVariantBuilder builder;
+      g_variant_builder_init(&builder, G_VARIANT_TYPE("a(iiay)"));
+      return g_variant_builder_end(&builder);
+    }
+
+    if (g_strcmp0(property_name, "ToolTip") == 0) {
+      GVariantBuilder pixmaps;
+      g_variant_builder_init(&pixmaps, G_VARIANT_TYPE("a(iiay)"));
+      return g_variant_new("(s@a(iiay)ss)",
+                           "",
+                           g_variant_builder_end(&pixmaps),
+                           self->tooltip_.c_str(),
+                           "");
+    }
+
+    if (g_strcmp0(property_name, "IconThemePath") == 0) {
+      if (!self->icon_path_.empty()) {
+        const gchar* sep = g_strrstr(self->icon_path_.c_str(), "/");
+        if (sep) {
+          g_autofree gchar* dir = g_strndup(self->icon_path_.c_str(),
+                                            sep - self->icon_path_.c_str());
+          return g_variant_new_string(dir);
+        }
+      }
+      return g_variant_new_string("");
+    }
+
+    if (g_strcmp0(property_name, "Menu") == 0) {
+      return g_variant_new_object_path(kSNIPath);
     }
 
     g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_PROPERTY,
@@ -245,43 +476,101 @@ bool TrayImplLinux::SetupDBusObject() {
     return nullptr;
   };
 
-  object_id_ = g_dbus_connection_register_object(
-      connection_, kSNIPath, iface_info, &vtable, this, nullptr, &error);
-
-  if (!object_id_) {
-    g_warning("[flutter_tray] Failed to register D-Bus object: %s",
-              error->message);
-    return false;
+  for (int i = 0; node_info->interfaces[i] != nullptr; i++) {
+    GDBusInterfaceInfo* iface_info = node_info->interfaces[i];
+    g_clear_error(&error);
+    guint id = g_dbus_connection_register_object(
+        connection_, kSNIPath, iface_info, &vtable, this, nullptr, &error);
+    if (id == 0) {
+      g_warning("[flutter_tray] Failed to register D-Bus interface %s: %s",
+                iface_info->name, error->message);
+      return false;
+    }
+    object_ids_.push_back(id);
   }
 
   return true;
 }
 
 bool TrayImplLinux::RegisterWithWatcher() {
-  const char* watcher_service = "org.kde.StatusNotifierWatcher";
-  const char* watcher_path = "/StatusNotifierWatcher";
+  const char* watchers[][2] = {
+    {"org.kde.StatusNotifierWatcher", "/StatusNotifierWatcher"},
+    {"org.freedesktop.StatusNotifierWatcher", "/org/freedesktop/StatusNotifierWatcher"},
+    {nullptr, nullptr}
+  };
 
-  g_autoptr(GError) error = nullptr;
-  g_autoptr(GVariant) result = g_dbus_connection_call_sync(
-      connection_,
-      watcher_service,
-      watcher_path,
-      watcher_service,
-      "RegisterStatusNotifierItem",
-      g_variant_new("(s)", bus_name_),
-      nullptr,
-      G_DBUS_CALL_FLAGS_NONE,
-      -1,
-      nullptr,
-      &error);
+  for (int i = 0; watchers[i][0] != nullptr; i++) {
+    g_autoptr(GError) error = nullptr;
+    g_autoptr(GVariant) result = g_dbus_connection_call_sync(
+        connection_,
+        watchers[i][0],
+        watchers[i][1],
+        watchers[i][0],
+        "RegisterStatusNotifierItem",
+        g_variant_new("(s)", bus_name_),
+        nullptr,
+        G_DBUS_CALL_FLAGS_NONE,
+        -1,
+        nullptr,
+        &error);
 
-  if (error) {
-    g_warning("[flutter_tray] Failed to register with watcher: %s",
-              error->message);
-    return false;
+    if (!error) {
+      g_print("[flutter_tray] Registered with %s\n", watchers[i][0]);
+      return true;
+    }
+    g_warning("[flutter_tray] %s not available: %s",
+              watchers[i][0], error->message);
   }
 
-  return true;
+  return false;
+}
+
+GVariant* TrayImplLinux::BuildMenuLayout(int parent_id, int recursion_depth) {
+  GVariantBuilder props;
+  g_variant_builder_init(&props, G_VARIANT_TYPE("a{sv}"));
+  GVariantBuilder children;
+  g_variant_builder_init(&children, G_VARIANT_TYPE("av"));
+
+  if (parent_id == 0 && recursion_depth != 0) {
+    for (const auto& item : menu_items_) {
+      GVariantBuilder iprops;
+      g_variant_builder_init(&iprops, G_VARIANT_TYPE("a{sv}"));
+
+      if (item.is_separator) {
+        g_variant_builder_add(&iprops, "{sv}", "type",
+                              g_variant_new_string("separator"));
+      } else {
+        g_variant_builder_add(&iprops, "{sv}", "label",
+                              g_variant_new_string(item.label.c_str()));
+        g_variant_builder_add(&iprops, "{sv}", "enabled",
+                              g_variant_new_boolean(!item.disabled));
+      }
+
+      GVariantBuilder empty_children;
+      g_variant_builder_init(&empty_children, G_VARIANT_TYPE("av"));
+
+      g_variant_builder_add(&children, "v",
+                            g_variant_new("(i@a{sv}@av)",
+                                          item.id,
+                                          g_variant_builder_end(&iprops),
+                                          g_variant_builder_end(&empty_children)));
+    }
+  }
+
+  return g_variant_new("(i@a{sv}@av)",
+                       parent_id,
+                       g_variant_builder_end(&props),
+                       g_variant_builder_end(&children));
+}
+
+void TrayImplLinux::EmitLayoutUpdated() {
+  if (!connection_) return;
+  dbusmenu_revision_++;
+  g_dbus_connection_emit_signal(
+      connection_, nullptr, kSNIPath,
+      "com.canonical.dbusmenu", "LayoutUpdated",
+      g_variant_new("(ui)", dbusmenu_revision_, 0),
+      nullptr);
 }
 
 void TrayImplLinux::ShowContextMenu() {
@@ -298,29 +587,27 @@ void TrayImplLinux::ShowContextMenu() {
   gtk_menu_ = GTK_MENU(gtk_menu_new());
 
   for (const auto& item : menu_items_) {
-    GtkWidget* menu_item;
+    GtkWidget* mi;
     if (item.is_separator) {
-      menu_item = gtk_separator_menu_item_new();
+      mi = gtk_separator_menu_item_new();
     } else {
-      menu_item = gtk_menu_item_new_with_label(item.label.c_str());
-      gtk_widget_set_sensitive(menu_item, !item.disabled);
-      g_object_set_data(G_OBJECT(menu_item), "tray-item-id",
+      mi = gtk_menu_item_new_with_label(item.label.c_str());
+      gtk_widget_set_sensitive(mi, !item.disabled);
+      g_object_set_data(G_OBJECT(mi), "tray-item-id",
                         GINT_TO_POINTER(item.id));
-      g_signal_connect_data(
-          menu_item, "activate",
-          G_CALLBACK(+[](GtkWidget* widget, gpointer user_data) {
-            auto* self = static_cast<TrayImplLinux*>(user_data);
-            int id = GPOINTER_TO_INT(
-                g_object_get_data(G_OBJECT(widget), "tray-item-id"));
-            self->EmitEvent("menuClick", id);
-          }),
-          this, nullptr, G_CONNECT_AFTER);
+      g_signal_connect_data(mi, "activate",
+                            G_CALLBACK(+[](GtkWidget* w, gpointer d) {
+                              auto* self = static_cast<TrayImplLinux*>(d);
+                              int id = GPOINTER_TO_INT(
+                                  g_object_get_data(G_OBJECT(w), "tray-item-id"));
+                              self->EmitEvent("menuClick", id);
+                            }),
+                            this, nullptr, G_CONNECT_AFTER);
     }
-    gtk_menu_shell_append(GTK_MENU_SHELL(gtk_menu_), menu_item);
+    gtk_menu_shell_append(GTK_MENU_SHELL(gtk_menu_), mi);
   }
 
   gtk_widget_show_all(GTK_WIDGET(gtk_menu_));
-
   gtk_menu_popup_at_pointer(gtk_menu_, nullptr);
 }
 
@@ -333,20 +620,4 @@ void TrayImplLinux::EmitEvent(const char* type, int menu_id) {
 
   fl_method_channel_invoke_method(channel_, "onTrayEvent", args,
                                   nullptr, nullptr, nullptr);
-}
-
-void TrayImplLinux::OnNameAcquired(GDBusConnection* connection,
-                                    const gchar* name,
-                                    gpointer user_data) {
-  (void)connection;
-  (void)user_data;
-  g_print("[flutter_tray] Name acquired: %s\n", name);
-}
-
-void TrayImplLinux::OnNameLost(GDBusConnection* connection,
-                                const gchar* name,
-                                gpointer user_data) {
-  (void)connection;
-  (void)user_data;
-  g_warning("[flutter_tray] Name lost: %s\n", name);
 }
