@@ -2,6 +2,20 @@
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
+import Foundation
+
+// Get the directory containing this Package.swift
+let packageDir = URL(fileURLWithPath: #filePath).deletingLastPathComponent().path
+let flutterFrameworkPath = packageDir + "/../FlutterFramework"
+let hasFlutterFramework = FileManager.default.fileExists(atPath: flutterFrameworkPath)
+
+var dependencies: [Package.Dependency] = []
+var targetDependencies: [Target.Dependency] = []
+
+if hasFlutterFramework {
+    dependencies.append(.package(name: "FlutterFramework", path: "../FlutterFramework"))
+    targetDependencies.append(.product(name: "FlutterFramework", package: "FlutterFramework"))
+}
 
 let package = Package(
     name: "flutter_tray",
@@ -11,15 +25,11 @@ let package = Package(
     products: [
         .library(name: "flutter-tray", targets: ["flutter_tray"])
     ],
-    dependencies: [
-        .package(name: "FlutterFramework", path: "../FlutterFramework")
-    ],
+    dependencies: dependencies,
     targets: [
         .target(
             name: "flutter_tray",
-            dependencies: [
-                .product(name: "FlutterFramework", package: "FlutterFramework")
-            ],
+            dependencies: targetDependencies,
             resources: [
                 // If your plugin requires a privacy manifest, for example if it collects user
                 // data, update the PrivacyInfo.xcprivacy file to describe your plugin's
