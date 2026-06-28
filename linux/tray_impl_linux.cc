@@ -289,8 +289,9 @@ bool TrayImplLinux::SetupDBusObject() {
                           self->dbusmenu_revision_, layout));
       } else if (g_strcmp0(method_name, "Event") == 0) {
         gint32 id = 0;
-        const gchar* event_id = nullptr;
-        g_variant_get(parameters, "(i&s)", &id, &event_id);
+        g_autofree gchar* event_id = nullptr;
+        g_variant_get_child(parameters, 0, "i", &id);
+        g_variant_get_child(parameters, 1, "s", &event_id);
 
         if (g_strcmp0(event_id, "clicked") == 0) {
           for (const auto& item : self->menu_items_) {
